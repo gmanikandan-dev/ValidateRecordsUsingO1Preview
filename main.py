@@ -38,6 +38,12 @@ app = FastAPI()
 def validate_record(record):
     """Validates a single record and detects anomalies using LLM."""
     
+    print(f"Tenant: {record['tenant_name']}, "+
+          f"New Accounts: {record['new_accounts']}, "+
+          f"Account Points: {record['account_points']}, "+
+          f"Total Account Points: {record['total_account_points']}"
+    )
+
     # Define the AI prompt
     messages = [
         {"role": "user", "content": f"""
@@ -65,15 +71,15 @@ def validate_record(record):
     response = ai_client.chat.completions.create(
         model="o1-preview",
         messages=messages,
-        max_completion_tokens=10
+        # max_completion_tokens=10
     )
 
-    ai_decision = response.choices[0].message.content.strip().lower()
+    ai_decision = response.choices[0].message.content
     print(f"AI Decision: {ai_decision}")
 
     # If AI returns 'false', log the issue
     if ai_decision == "false":
-        return (record["tenant_name"], record["date"], "Validation failed")
+        return (record["tenant_name"], record["date"],  "Validation failed")
 
     return None
 
