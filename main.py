@@ -42,28 +42,29 @@ def validate_record(record):
         return None  # No issue found
 
     # Use AI model to evaluate anomaly
-    prompt = f"""
-    The following data might have an inconsistency. Can you evaluate if it's an anomaly?
+    messages = [
+        {"role": "system", "content": "You are an AI that detects anomalies in CSV data."},
+        {"role": "user", "content": f"""
+        The following data might have an inconsistency. Can you evaluate if it's an anomaly?
 
-    Tenant: {record['tenant_name']}
-    Date: {record['date']}
-    New Accounts: {record['new_accounts']}
-    Account Points: {record['account_points']}
-    Reported Total Points: {record['total_account_points']}
-    Expected Total Points: {expected_total}
+        Tenant: {record['tenant_name']}
+        Date: {record['date']}
+        New Accounts: {record['new_accounts']}
+        Account Points: {record['account_points']}
+        Reported Total Points: {record['total_account_points']}
+        Expected Total Points: {expected_total}
 
-    Does this look like an error? Answer with 'Yes' or 'No' and explain briefly.
-    """
+        Does this look like an error? Answer with 'Yes' or 'No' and explain briefly.
+        """}
+    ]
 
-    response = ai_client.completions.create(
+    response = ai_client.chat.completions.create(
         model="o1-preview",
-        prompt=prompt,
+        messages=messages,
         max_tokens=50
     )
 
-    ai_decision = response.choices[0].text.strip()
-    print(f"AI Decision: {ai_decision}")
-
+    ai_decision = response.choices[0].message.content.strip()
     if "Yes" in ai_decision:
         return (record["tenant_name"], record["date"], ai_decision)
 
