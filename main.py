@@ -37,36 +37,43 @@ app = FastAPI()
 
 def validate_record(record):
     """Validates a single record and detects anomalies using LLM."""
-    expected_total = record["new_accounts"] * record["account_points"]
-    if record["total_account_points"] == expected_total:
-        return None  # No issue found
-
-    # Use AI model to evaluate anomaly
+    
+    # Define the AI prompt
     messages = [
-        {"role": "system", "content": "You are an AI that detects anomalies in CSV data."},
         {"role": "user", "content": f"""
-        The following data might have an inconsistency. Can you evaluate if it's an anomaly?
+        Please verify if the reported total points follow this rule:
 
+        **Rule:** Reported total points should be equal to (new_accounts * account_points).
+
+        **Data:**
         Tenant: {record['tenant_name']}
         Date: {record['date']}
         New Accounts: {record['new_accounts']}
         Account Points: {record['account_points']}
         Reported Total Points: {record['total_account_points']}
-        Expected Total Points: {expected_total}
 
-        Does this look like an error? Answer with 'Yes' or 'No' and explain briefly.
+        **Instructions:**
+        - If the data follows the rule, respond **exactly** as: `true`
+        - If the data does **not** follow the rule, respond **exactly** as: `false`
+        - Do **not** provide any extra text, just return `true` or `false`.
+
+        Your response:
         """}
     ]
 
+    # Call OpenAI API
     response = ai_client.chat.completions.create(
         model="o1-preview",
         messages=messages,
-        max_tokens=50
+        max_completion_tokens=10
     )
 
-    ai_decision = response.choices[0].message.content.strip()
-    if "Yes" in ai_decision:
-        return (record["tenant_name"], record["date"], ai_decision)
+    ai_decision = response.choices[0].message.content.strip().lower()
+    print(f"AI Decision: {ai_decision}")
+
+    # If AI returns 'false', log the issue
+    if ai_decision == "false":
+        return (record["tenant_name"], record["date"], "Validation failed")
 
     return None
 
