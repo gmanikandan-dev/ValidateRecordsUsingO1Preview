@@ -125,6 +125,10 @@ def process_records():
 
     return {"message": "Validation completed", "errors_found": len(all_discrepancies)}
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
